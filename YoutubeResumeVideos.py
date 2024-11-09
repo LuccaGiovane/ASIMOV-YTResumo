@@ -1,11 +1,10 @@
-import pytube
 import os
 import ffmpeg
-import whisper
 import openai
+import pytubefix as pytube
 
 # Colocar aqui a Key do chatGPT
-openai.api_key = 'Sua key do chatGPT'
+openai.api_key = 'SUA_KEY'
 
 
 def baixar_audio(url):
@@ -67,6 +66,6 @@ def resumir_texto(texto):
     return resumo
 
 # Colocar a URL do vídeo aqui
-url_video = "https://www.youtube.com/SEUVIDEO"
+url_video = "https://www.youtube.com/SEU-VIDEO"
 resumo_video = analisar_video(url_video)
 print("Resumo do vídeo:", resumo_video)
