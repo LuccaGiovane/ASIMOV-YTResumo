@@ -1,55 +1,38 @@
-import yt_dlp
+import pytube
+import os
+import ffmpeg
 import whisper
 import openai
-import ffmpeg
-import os
 
 # Colocar aqui a Key do chatGPT
-openai.api_key = 'API_KEY'
+openai.api_key = 'Sua key do chatGPT'
 
 
 def baixar_audio(url):
     """
-    Baixa o áudio de um vídeo do YouTube usando yt-dlp.
+    Baixa o áudio de um vídeo do YouTube usando pytube e converte para WAV.
     """
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'wav',
-            'preferredquality': '192',
-        }],
-        'outtmpl': 'audio.wav'
-    }
+    yt = pytube.YouTube(url)
+    audio_stream = yt.streams.filter(only_audio=True).first().url
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    # Define o nome do arquivo de saída
+    filename = "audio.wav"
 
-    return 'audio.wav'
+    # Usa ffmpeg para baixar e converter para o formato WAV diretamente
+    ffmpeg.input(audio_stream).output(filename, format='wav', loglevel="error").run()
 
+    return filename
 
 def transcrever_audio(audio_path):
     """
-    Transcreve o áudio usando Whisper.
+    Transcreve o áudio usando a API Whisper da OpenAI.
     """
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_path)
-    return result["text"]
-
-
-def resumir_texto(texto):
-    """
-    Resume o texto transcrito usando a API de linguagem da OpenAI.
-    """
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=f"Resuma o seguinte texto:\n\n{texto}",
-        max_tokens=150,
-        temperature=0.5
-    )
-    resumo = response.choices[0].text.strip()
-    return resumo
-
+    with open(audio_path, "rb") as audio_file:
+        transcript = openai.Audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+    return transcript["text"]
 
 def analisar_video(url):
     """
@@ -69,8 +52,21 @@ def analisar_video(url):
 
     return resumo
 
+def resumir_texto(texto):
+    """
+    Resume o texto transcrito usando a API de linguagem da OpenAI.
+    """
+    completion = openai.ChatCompletion.create(
+        model="gpt-4-turbo",
+        messages=[
+            {"role": "system", "content": "Você é um assistente que resume vídeos detalhadamente. Responda com formatação Markdown."},
+            {"role": "user", "content": f"Descreva o seguinte vídeo: {texto}"}
+        ]
+    )
+    resumo = completion.choices[0].message.content.strip()
+    return resumo
 
-# Colocar a URL do video aqui
-url_video = "www.seu.video.do.Youtube.com"
+# Colocar a URL do vídeo aqui
+url_video = "https://www.youtube.com/SEUVIDEO"
 resumo_video = analisar_video(url_video)
 print("Resumo do vídeo:", resumo_video)
